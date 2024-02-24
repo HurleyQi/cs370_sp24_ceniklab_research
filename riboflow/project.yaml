@@ -68,12 +68,12 @@ alignment_arguments:
 ###############################################################################
 # RiboPy parameters for ribo file generation.
 ribo:
-    ref_name:        "appris_celegans_v1"
+    ref_name:        "appris-v1"
     metagene_radius: 50
     left_span:       35
     right_span:      10
     read_length:
-       min: 15
+       min: 21
        max: 40
     coverage: true
    
