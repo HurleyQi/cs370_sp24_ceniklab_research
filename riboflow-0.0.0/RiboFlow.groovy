@@ -8,11 +8,6 @@ Developed and tested on:
 N E X T F L O W  ~  version 19.04.1
 */
 
-// TODO
-// DEDUPLICATE IN RNA-SEQ
-// UPDATE DOCKER IMAGE
-// Simplify Output
-
 ////////////////////////////////////////////////////////////////////////////////
 ////// General Function Definitions ////////////////////////////////////////////
 
@@ -28,63 +23,8 @@ String get_publishdir(output_type){
 							.getCanonicalPath()
 }
 
-String get_dedup_method(String dedup_arg, String dedup_old){
-  /*
-  dedup_arg: User provided dedup method
-  dedup_old: In the first version, dedup vas a boolean parameter
-             We provide back-compatibility in the absenceo of dedup_arg
-
-  Possible dedup_arg types are
-    umi_tools: deduplication is based on umi umi_tools
-               in this case looks for UMI_EXTRACT and UMI_DEDUP
-               parameters if available to use them.
-
-    position: position based deduplication.
-              This is the method in the first version of ReiboFlow
-
-    none:     Do not deduplicate
-
-  */
-  def valid_methods = ["position", "umi_tools", "none"]
-
-  dedup_param = dedup_arg.toLowerCase()
-
-  if(dedup_param != "none"){
-
-    if(dedup_param in valid_methods){
-      return(dedup_param)
-    }
-    else {
-      println("Invalid deduplication method " + dedup_param + " . Valid methods are: ")
-      println( valid_methods.join(",") )
-      System.exit(1)
-    }
-  }
-  else {
-    // We make it compatible with the earlier versions.
-    // So if the dedup flag is true, and dedup_method is not provided
-    // it should be
-    // position based dedup
-    if( dedup_old.toLowerCase() != "false" ){
-      return("position")
-    }
-    else{
-      return("none")
-    }
-  }
-}
-
 ////// General Function Definitions ////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-
-dedup_method = get_dedup_method(params.get("dedup_method", "none").toString(),
-                                params.get("deduplicate", false).toString() )
-
-// to be deleted
-//println(dedup_method)
-//println(params.umi_tools_extract_arguments)
-//System.exit(0)
-
 
 fastq_base = params.input.get("fastq_base", "")
 if(! fastq_base.endsWith("/") && fastq_base != ""){
@@ -93,18 +33,18 @@ if(! fastq_base.endsWith("/") && fastq_base != ""){
 
 // Group input files into a list of tuples where each item is
 // [ sample, fileindex, path_to_fastq_file]
-Channel.from(params.input.fastq.collect{k,v ->
-	              v.collect{ z -> [k, v.indexOf(z) + 1,
-									               file("${fastq_base}${z}")] }  })
-	.flatten().collate(3).into{  INPUT_SAMPLES_VERBOSE;
-		                           INPUT_SAMPLES_MD5;
+Channel.from(params.input.fastq.collect{k,v -> 
+	              v.collect{ z -> [k, v.indexOf(z) + 1, 
+									               file("${fastq_base}${z}")] }  }) 
+	.flatten().collate(3).into{  INPUT_SAMPLES_VERBOSE; 
+		                           INPUT_SAMPLES_MD5; 
 	                             INPUT_SAMPLES_EXISTENCE;
-	                             INPUT_SAMPLES_FASTQC;
+	                             INPUT_SAMPLES_FASTQC; 
 															 INPUT_SAMPLES_CLIP;
-	                             INPUT_SAMPLES_LOG;
+	                             INPUT_SAMPLES_LOG; 
 															 INPUT_SAMPLES_READ_LENGTH;
 														   INPUT_FOR_METADATA}
-
+	                              
 
 
 // Create a log file of index <-> fastq-file correspondence
@@ -135,19 +75,19 @@ process write_fastq_correspondence{
 ////////////////////////////////////////////////////////////////////////////////
 ////// Check File Existence ////////////////////////////////////////////////////
 
-boolean file_exists(file_path) {
+boolean file_exists(file_path) {    
     this_file = file(file_path)
-    assert this_file.exists()
+    assert this_file.exists()  
     return true
 }
 
-boolean hisat2_ref_exists(hisat2_ref) {
+boolean hisat2_ref_exists(hisat2_ref) {    
     Channel.from( ["1.ht2", "2.ht2", "3.ht2","4.ht2","5.ht2","6.ht2", "7.ht2", "8.ht2"])
     .map{ this_suffix -> file_exists( "${hisat2_ref}.${this_suffix}".replaceAll('\\*', "") ) }
     return true
 }
 
-boolean bt2_ref_exists(bt2_ref) {
+boolean bt2_ref_exists(bt2_ref) {    
     Channel.from( ["1.bt2", "2.bt2", "3.bt2","4.bt2","rev.1.bt2","rev.2.bt2"])
     .map{ this_suffix -> file_exists( "${bt2_ref}.${this_suffix}".replaceAll('\\*', "") ) }
     return true
@@ -163,14 +103,14 @@ if(params.do_check_file_existence){
    if( params.input.reference.get("genome", false) ){
        hisat2_ref_exists( params.input.reference.genome )
    }
-
+   
    if( params.input.reference.get("post_genome", false) ){
        bt2_ref_exists( params.input.reference.post_genome )
    }
 
    file_exists(params.input.reference.regions)
    file_exists(params.input.reference.transcript_lengths)
-
+   
    root_meta_file = params.input.get("root_meta", false)
    if( root_meta_file ){
      file_exists(root_meta_file)
@@ -196,7 +136,7 @@ process raw_fastqc{
 	set val(sample), val(index), file(fastq) from INPUT_SAMPLES_FASTQC
 
 	output:
-	set val(sample), file("${sample}.${index}_fastqc.html"),
+	set val(sample), file("${sample}.${index}_fastqc.html"), 
                        file("${sample}.${index}_fastqc.zip") into RAW_FASTQC_OUT
 
   when:
@@ -209,7 +149,7 @@ process raw_fastqc{
     fastqc ${sample}.${index}.fastq.gz --outdir=\$PWD -t ${task.cpus}
     """
 
-}
+} 
 
 // RAW_FASTQC
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -238,56 +178,20 @@ process clip{
 // CLIP
 ///////////////////////////////////////////////////////////////////////////////////////
 
-CLIP_OUT.into{ CLIP_OUT_FASTQC; CLIP_OUT_DEDUP; CLIP_OUT_FILTER ; CLIP_OUT_READ_LENGTH}
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-/* EXTRACT UMI via UMI_tools */
-
-process extract_umi_via_umi_tools{
-  storeDir get_storedir("umi_tools") + "/" + params.output.merged_lane_directory
-
-  input:
-  set val(sample), val(index), file(fastq) from CLIP_OUT_DEDUP
-
-  output:
-  set val(sample), val(index), file("${sample}.${index}.umi_extracted.fastq.gz") into UMI_EXTRACT_OUT
-  set val(sample), val(index), file("${sample}.${index}.umi_extracted.log") into UMI_EXTRACT_LOG
-
-  when:
-  dedup_method == "umi_tools"
-
-  """
-  umi_tools extract -I ${fastq} -S ${sample}.${index}.umi_extracted.fastq.gz \
-     -L ${sample}.${index}.umi_extracted.log \
-     ${params.get("umi_tools_extract_arguments", "")}
-  """
-}
-
-/* EXTRACT UMI via UMI_tools */
-///////////////////////////////////////////////////////////////////////////////////////
-
-
-
-if(dedup_method == "none" || dedup_method == "position"){
-  CLIP_OUT_FILTER.set{ FILTER_INPUT_FASTQ }
-}
-else if(dedup_method == "umi_tools"){
-  UMI_EXTRACT_OUT.set{ FILTER_INPUT_FASTQ }
-}
+CLIP_OUT.into{ CLIP_OUT_FASTQC; CLIP_OUT_FILTER ; CLIP_OUT_READ_LENGTH}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 /* CLIPPED FASTQC */
 
 process clipped_fastqc{
 
-    publishDir get_publishdir("fastqc") + "/clipped", mode: 'copy'
+    publishDir get_publishdir("fastqc") + "/clipped", mode: 'copy' 
 
     input:
     set val(sample), val(index), file(fastq)  from CLIP_OUT_FASTQC
 
     output:
-    set val(sample), file("${sample}.${index}.clipped_fastqc.html"),
+    set val(sample), file("${sample}.${index}.clipped_fastqc.html"), 
                        file("${sample}.${index}.clipped_fastqc.zip") into CLIPPED_FASTQC_OUT
 
     when:
@@ -326,7 +230,7 @@ process filter{
 	storeDir get_storedir("filter")
 
 	input:
-	set val(sample), val(index), file(fastq) from FILTER_INPUT_FASTQ
+	set val(sample), val(index), file(fastq) from CLIP_OUT_FILTER
 	set val(bowtie2_index_base), file(bowtie2_index_files) from FILTER_INDEX.first()
 
 	output:
@@ -360,9 +264,9 @@ process filter{
 
 }
 
-FILTER_ALIGNED.into{FILTER_ALIGNED_FASTQ_READ_LENGTH;
+FILTER_ALIGNED.into{FILTER_ALIGNED_FASTQ_READ_LENGTH; 
                     FILTER_ALIGNED_FASTQ_FASTQC}
-FILTER_UNALIGNED.into{FILTER_UNALIGNED_FASTQ_READ_LENGTH;
+FILTER_UNALIGNED.into{FILTER_UNALIGNED_FASTQ_READ_LENGTH; 
                       FILTER_UNALIGNED_FASTQ_FASTQC;
                       FILTER_UNALIGNED_TRANSCRIPTOME}
 
@@ -412,22 +316,18 @@ process transcriptome_alignment{
             --al-gz ${sample}.${index}.aligned.transcriptome_alignment.fastq.gz \
             --un-gz ${sample}.${index}.unaligned.transcriptome_alignment.fastq.gz \
 						           2> ${sample}.${index}.transcriptome_alignment.log \
-            | samtools view -bS -o ${sample}.${index}.tmp.transcriptome_alignment.bam \
-            && samtools addreplacerg -r ID:${sample}.${index} -@ ${task.cpus} \
-                                     ${sample}.${index}.tmp.transcriptome_alignment.bam \
+            | samtools view -bS - \
             | samtools sort -@ ${task.cpus} -o ${sample}.${index}.transcriptome_alignment.bam \
             && samtools index -@ {task.cpus} ${sample}.${index}.transcriptome_alignment.bam \
             && samtools idxstats -@ {task.cpus} ${sample}.${index}.transcriptome_alignment.bam  > \
                ${sample}.${index}.transcriptome_alignment.stats
-
-    rm ${sample}.${index}.tmp.transcriptome_alignment.bam
     """
 }
 
 // TRANSCRIPTOME ALIGNMENT
 ///////////////////////////////////////////////////////////////////////////////////////
 
-TRANSCRIPTOME_ALIGNMENT_BAM_PRE.into{ TRANSCRIPTOME_ALIGNMENT_BAM;
+TRANSCRIPTOME_ALIGNMENT_BAM_PRE.into{ TRANSCRIPTOME_ALIGNMENT_BAM; 
 	                                    TRANSCRIPTOME_ALIGNMENT_BAM_MERGE;
                                       TRANSCRIPTOME_ALIGNMENT_BAM_FOR_QUALITY}
 
@@ -461,17 +361,14 @@ process quality_filter{
 	"""
 }
 
-TRANSCRIPTOME_ALIGNMENT_QPASS_BAM_PRE.into{ QPASS_BAM_READ_LENGTH;
-	                                          TRANSCRIPTOME_ALIGNMENT_QPASS_BAM;
-                                            TRANSCRIPTOME_ALIGNMENT_QPASS_BAM_FOR_MERGE;
-                                            TRANSCRIPTOME_ALIGNMENT_QPASS_BAM_FOR_DEDUP;
-                                            TRANSCRIPTOME_ALIGNMENT_QPASS_BAM_FOR_ARRANGE}
+TRANSCRIPTOME_ALIGNMENT_QPASS_BAM_PRE.into{ QPASS_BAM_READ_LENGTH; 
+	                                        TRANSCRIPTOME_ALIGNMENT_QPASS_BAM}
 
 // QUALITY FILTER
 ///////////////////////////////////////////////////////////////////////////////////////
 
 
-TRANSCRIPTOME_QPASS_COUNTS.into{TRANSCRIPTOME_QPASS_COUNTS_FOR_INDEX;
+TRANSCRIPTOME_QPASS_COUNTS.into{TRANSCRIPTOME_QPASS_COUNTS_FOR_INDEX; 
 	                            TRANSCRIPTOME_QPASS_COUNTS_FOR_TABLE}
 
 // We need to copy output channels of transcriptome alignment
@@ -513,7 +410,7 @@ TRANSCRIPTOME_ALIGNMENT_LOG_MERGE.map{sample, index, log -> [sample, log]}.group
 
 TRANSCRIPTOME_ALIGNMENT_GROUPED_BAM.join(TRANSCRIPTOME_ALIGNMENT_GROUPED_ALIGNED)
                                    .join(TRANSCRIPTOME_ALIGNMENT_GROUPED_UNALIGNED)
-                                   .join(TRANSCRIPTOME_ALIGNMENT_GROUPED_LOG)
+                                   .join(TRANSCRIPTOME_ALIGNMENT_GROUPED_LOG) 
                                    .into{TRANSCRIPTOME_ALIGNMENT_GROUPED_JOINT;
                                          TRANSCRIPTOME_ALIGNMENT_GROUPED_JOINED_VERBOSE}
 
@@ -523,13 +420,12 @@ process merge_transcriptome_alignment{
 	storeDir get_storedir("transcriptome_alignment") + "/" + params.output.merged_lane_directory
 
   input:
-	set val(sample), file(bam), file(aligned_fastq),
+	set val(sample), file(bam), file(aligned_fastq), 
 	    file(unaligned_fastq), file(alignment_log) from\
            TRANSCRIPTOME_ALIGNMENT_GROUPED_JOINT
 
 	output:
-	set val(sample), file("${sample}.transcriptome.bam"),
-                   file("${sample}.transcriptome.bam.bai")            into \
+	set val(sample), file("${sample}.transcriptome.bam")                into \
 	      TRANSCRIPTOME_ALIGNMENT_MERGED_BAM
 	set val(sample), file("${sample}.transcriptome.bam.bai")            into \
 	      TRANSCRIPTOME_ALIGNMENT_MERGED_BAI
@@ -548,7 +444,7 @@ process merge_transcriptome_alignment{
     rfc merge bowtie2-logs --out ${sample}.transcriptome.log ${alignment_log}
 	"""
 
-}
+}    
 
 // MERGE TRANSCRIPTOME ALIGNMENT
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -557,13 +453,13 @@ process merge_transcriptome_alignment{
 /* TRANSCRIPTOME INDIVIDUAL  FASTQC */
 
 process transcriptome_aligned_individual_fastqc{
-    publishDir get_publishdir("fastqc") + "/transcriptome_aligned", mode: 'copy'
+    publishDir get_publishdir("fastqc") + "/transcriptome_aligned", mode: 'copy' 
 
     input:
     set val(sample), val(index), file(fastq)  from TRANSCRIPTOME_ALIGNMENT_ALIGNED_FASTQC
 
     output:
-    set val(sample), file("${sample}.${index}.transcriptome.aligned_fastqc.html"),
+    set val(sample), file("${sample}.${index}.transcriptome.aligned_fastqc.html"), 
                        file("${sample}.${index}.transcriptome.aligned_fastqc.zip") \
                         into TRANSCRIPTOME_ALIGNED_INDIVIDUAL_FASTQC_OUT
 
@@ -580,14 +476,14 @@ process transcriptome_aligned_individual_fastqc{
 }
 
 process transcriptome_unaligned_individual_fastqc{
-    publishDir get_publishdir("fastqc") + "/transcriptome_unaligned", mode: 'copy'
+    publishDir get_publishdir("fastqc") + "/transcriptome_unaligned", mode: 'copy' 
 
     input:
     set val(sample), val(index), file(fastq)  from TRANSCRIPTOME_ALIGNMENT_UNALIGNED_FASTQC
 
 
     output:
-    set val(sample), file("${sample}.${index}.transcriptome.unaligned_fastqc.html"),
+    set val(sample), file("${sample}.${index}.transcriptome.unaligned_fastqc.html"), 
                        file("${sample}.${index}.transcriptome.unaligned_fastqc.zip") \
                         into TRANSCRIPTOME_UNALIGNED_INDIVIDUAL_FASTQC_OUT
     when:
@@ -736,28 +632,28 @@ process merge_genome_alignment{
 	"""
 
 }
-
+                           
 GENOME_ALIGNMENT_CSV
    .map{ sample, index, stats_file -> stats_file }
    .toSortedList().set{GENOME_ALIGNMENT_CSV_INDIVIDUAL_LIST}
-
+ 
 GENOME_ALIGNMENT_MERGED_CSV
    .map{ sample, stats_file -> stats_file }
    .toSortedList().set{GENOME_ALIGNMENT_CSV_MERGED_LIST}
-
+                           
 process combine_individual_genome_stats{
   storeDir get_storedir("genome_alignment") + "/logs"
-
+               
   input:
   file(stats_input_files) from GENOME_ALIGNMENT_CSV_INDIVIDUAL_LIST
   file(stats_input_files_merged) from GENOME_ALIGNMENT_CSV_MERGED_LIST
-
+  
   output:
   file("genome_individual_stats.csv") \
         into GENOME_ALIGNMENT_CSV_INDIVIDUAL_COMBINED
   file("genome_merged_stats.csv") \
         into GENOME_ALIGNMENT_CSV_MERGED_COMBINED
-
+        
   """
   rfc merge overall-stats -o genome_individual_stats.csv ${stats_input_files} ; \
   rfc merge overall-stats -o genome_merged_stats.csv ${stats_input_files_merged}
@@ -809,7 +705,7 @@ process bam_to_bed{
     else
         bamToBed -i ${bam} > ${sample}.${index}.bed
     fi
-
+    
     wc -l ${sample}.${index}.bed > ${sample}.${index}_nodedup_count.txt
     """
 
@@ -849,10 +745,6 @@ process merge_bed{
 	set val(sample), file("${sample}.merged.pre_dedup.bed") \
 	    into MERGE_BED_OUT
 
-
-  when:
-	dedup_method == "position"
-
 	"""
 	cat ${bed_files} | sort -k1,1 -k2,2n -k3,3n > ${sample}.merged.pre_dedup.bed
 	"""
@@ -861,36 +753,7 @@ process merge_bed{
 MERGE_BED_OUT.into{BED_FOR_DEDUP_MERGED_PRE_DEDUP;
                    MERGED_BED_FOR_RIBO}
 
-
-TRANSCRIPTOME_ALIGNMENT_QPASS_BAM_FOR_MERGE.map{sample, index, bam -> [sample, bam]}.groupTuple()
-   .set{ TRANSCRIPTOME_ALIGNMENT_QPASS_GROUPED_BAM }
-
-
-process merge_bam_post_qpass{
-  storeDir get_storedir("transcriptome_alignment") + "/" + params.output.merged_lane_directory
-
-  input:
-  set val(sample), file(bam_files) from TRANSCRIPTOME_ALIGNMENT_QPASS_GROUPED_BAM
-
-  output:
-  set val(sample), file("${sample}.merged.pre_dedup.bam"),\
-                   file("${sample}.merged.pre_dedup.bam.bai") \
-      into MERGED_BAM_PRE_DEDUP
-
-  when:
-	dedup_method == "umi_tools"
-
-  """
-  samtools merge ${sample}.merged.pre_dedup.bam ${bam_files}
-
-  samtools index ${sample}.merged.pre_dedup.bam ${sample}.merged.pre_dedup.bam.bai
-  """
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//          D E D U P L I C A T I O N
-
-process deduplicate_position{
+process deduplicate{
 
 	storeDir  get_storedir("alignment_ribo") + "/" + params.output.merged_lane_directory
 
@@ -902,45 +765,12 @@ process deduplicate_position{
 	     into BED_FOR_DEDUP_MERGED_POST_DEDUP
 
 	when:
-	dedup_method == "position"
+	params.get("deduplicate", false)
 
-	"""
+	"""	
 	rfc dedup -i ${bed} -o ${sample}.merged.post_dedup.bed
 	"""
 }
-
-
-process deduplicate_umi_tools{
-  storeDir  get_storedir("umi_tools") + "/" + params.output.merged_lane_directory
-
-  input:
-	set val(sample), file(bam), file(bai) from MERGED_BAM_PRE_DEDUP
-
-  output:
-  set val(sample), file("${sample}.dedup.bam") into UMI_TOOLS_DEDUP_BAM
-
-  set val(sample), file("${sample}.dedup.bed") into  UMI_TOOLS_BED_FOR_DEDUP_MERGED_POST_DEDUP
-
-  set val(sample), file("${sample}.dedup.log") into UMI_TOOLS_DEDUP_LOG
-
-  set val(sample), file("${sample}.dedup.stats_edit_distance.tsv"),
-                   file("${sample}.dedup.stats_per_umi_per_position.tsv"),
-                   file("${sample}.dedup.stats_per_umi.tsv") \
-                        into UMI_TOOLS_DEDUP_STATS
-
-  when:
-  dedup_method == "umi_tools"
-
-  """
-  umi_tools dedup ${params.get("umi_tools_dedup_arguments", "")} \
-              -I ${bam} --output-stats=${sample}.dedup.stats -S ${sample}.dedup.bam -L ${sample}.dedup.log
-
-  bamToBed -i ${sample}.dedup.bam > ${sample}.dedup.bed
-  """
-}
-
-//          D E D U P L I C A T I O N
-///////////////////////////////////////////////////////////////////////////////
 
 BED_FOR_DEDUP_MERGED_POST_DEDUP.into{BED_FOR_DEDUP_MERGED_POST_DEDUP_FOR_SEP;
                                      BED_FOR_DEDUP_MERGED_POST_DEDUP_FOR_RIBO}
@@ -963,8 +793,8 @@ process separate_bed_post_dedup{
 	set val(sample), val(index), file("${sample}.${index}.count_after_dedup.txt")\
 	   into INDIVIDUAL_DEDUP_COUNT_WITH_DEDUP
 
-  when:
-  dedup_method == "position"
+	when:
+	params.deduplicate
 
 	"""
 	awk -v this_sample=${sample}.${index} \
@@ -974,52 +804,18 @@ process separate_bed_post_dedup{
 	"""
 }
 
-TRANSCRIPTOME_ALIGNMENT_QPASS_BAM_FOR_ARRANGE.map{ sample,index,file -> [sample, index] }
-    .combine(UMI_TOOLS_DEDUP_BAM , by:0)
-    .set{ BAM_FOR_INDEX_SEP_POST_DEDUP }
 
-process separate_bam_post_dedup{
-  storeDir  get_storedir("alignment_ribo") + "/" + params.output.individual_lane_directory
-
-  input:
-  set val(sample), val(index), file(bam) from BAM_FOR_INDEX_SEP_POST_DEDUP
-
-  output:
-  set val(sample), val(index), file("${sample}.${index}.post_dedup.bam") \
-	   into BAM_INDIVIDUAL_DEDUPLICATED
-  set val(sample), val(index), file("${sample}.${index}.count_after_dedup.txt")\
-  	 into BAM_INDIVIDUAL_DEDUP_COUNT_WITH_DEDUP
-
-
-  when:
-  dedup_method == "umi_tools"
-
-  """
-  samtools view -B -r ${sample}.${index} ${bam} -o ${sample}.${index}.post_dedup.bam
-
-  samtools view -c ${sample}.${index}.post_dedup.bam > ${sample}.${index}.count_after_dedup.txt
-  """
-}
-
-
-if(dedup_method == "position"){
+if(params.get("deduplicate", false)){
   BED_FOR_DEDUP_MERGED_POST_DEDUP_FOR_RIBO
   .into{BED_FOR_SEPARATION; BED_FOR_RIBO; BED_FOR_RIBO_VERBOSE}
-
+  
   INDIVIDUAL_DEDUP_COUNT_WITH_DEDUP
   .set{INDIVIDUAL_DEDUP_COUNT}
-}
-else if(dedup_method == "umi_tools"){
-  UMI_TOOLS_BED_FOR_DEDUP_MERGED_POST_DEDUP
-  .into{BED_FOR_SEPARATION; BED_FOR_RIBO; BED_FOR_RIBO_VERBOSE}
-
-  BAM_INDIVIDUAL_DEDUP_COUNT_WITH_DEDUP
-  .set{INDIVIDUAL_DEDUP_COUNT}
-}
-else if(dedup_method == "none"){
+} 
+else{
   MERGED_BED_FOR_RIBO
   .into{BED_FOR_SEPARATION; BED_FOR_RIBO; BED_FOR_RIBO_VERBOSE}
-
+  
   INDIVIDUAL_DEDUP_COUNT_WITHOUT_DEDUP
   .set{INDIVIDUAL_DEDUP_COUNT}
 }
@@ -1068,9 +864,9 @@ process individual_alignment_stats{
 	cutadapt, filter, transcriptome and genome alignment,
 	quality filtering and deduplication
 	*/
-
+	
 	 executor 'local'
-
+	
    storeDir get_storedir("stats")
 
    input:
@@ -1116,7 +912,7 @@ process combine_individual_alignment_stats{
 
 	input:
 	file(stat_table) from INDIVIDUAL_ALIGNMENT_STATS_COLLECTED
-
+    
 	output:
 	file("essential_individual_stats.csv") \
 	      into COMBINED_INDIVIDUAL_ALIGNMENT_STATS
@@ -1139,7 +935,7 @@ process combine_individual_alignment_stats{
 /* SUM INDIVIDUAL ALIGNMENT STATS */
 
 /*
-For each sample, sums up the stats coming from individual lanes
+For each sample, sums up the stats coming from individual lanes 
 */
 
 INDIVIDUAL_ALIGNMENT_STATS_FOR_GOUPING
@@ -1180,7 +976,7 @@ MERGED_ALIGNMENT_STATS.map{ sample, stats_file -> stats_file }
 process combine_merged_alignment_stats{
 
 	storeDir get_storedir("stats")
-
+	
 	executor 'local'
 
 	input:
@@ -1196,10 +992,10 @@ process combine_merged_alignment_stats{
 	rfc stats-percentage \
 	  -i raw_combined_merged_aln_stats.csv \
 	  -o essential_stats.csv
-	"""
+	""" 
 }
 
-// COMBINE MERGED ALIGNMENT STATS
+// COMBINE MERGED ALIGNMENT STATS 
 ////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1210,12 +1006,12 @@ if( do_metadata ){
 	meta_base = params.input.metadata.get("base", "")
 	if(meta_base != "" && !meta_base.endsWith("/") ){
 		meta_base = "${meta_base}/"
-	}
+	} 
 
 	Channel.from(params.input.metadata.files.collect{k,v ->
 	 	                  [k, file("${meta_base}${v}") ] })
-										     .into{METADATA_PRE; METADATA_PRE_VERBOSE }
-
+										     .into{METADATA_PRE; METADATA_PRE_VERBOSE }	
+                         
   BED_FOR_RIBO
                    .join(METADATA_PRE, remainder: true)
                    .into{METADATA_RIBO; METADATA_VERBOSE}
@@ -1236,7 +1032,7 @@ if (params.input.get("root_meta", false)){
 else {
   ROOT_META = Channel.from([null])
 }
-
+								
 // METADATA CHANNELS
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1255,28 +1051,28 @@ into{ANNOTATION_FOR_RIBO; ANNOTATION_FOR_IND_RIBO}
 
 if(params.ribo.coverage){
 	coverage_argument = ""
-}
+} 
 else{
-  coverage_argument = "--nocoverage"
+  coverage_argument = "--nocoverage"	
 }
 
 
 
 
 process create_ribo{
-
+	
 	publishDir get_publishdir("ribo") + "/experiments", mode:'copy'
   storeDir get_storedir("ribo") + "/experiments"
-
+	
 	input:
 	set val(sample), file(bed_file), file(meta_file) from METADATA_RIBO
 	file(transcript_length_file) from T_LENGTHS_FOR_RIBO.first()
 	file(annotation_file) from ANNOTATION_FOR_RIBO.first()
   file(root_meta_file) from ROOT_META.first()
-
+	
 	output:
 	set val(sample), file("${sample}.ribo") into RIBO_MAIN
-
+	
   script:
   if (meta_file != null){
     sample_meta_argument = "--expmeta ${meta_file}"
@@ -1284,14 +1080,14 @@ process create_ribo{
   else {
     sample_meta_argument = ""
   }
-
+  
   if(root_meta_file == null){
     root_meta_argument = ""
   }
   else{
     root_meta_argument = "--ribometa ${root_meta_file}"
   }
-
+  
 
 	"""
 	ribopy create -n ${sample} \
@@ -1310,14 +1106,14 @@ process create_ribo{
                 ${sample}.ribo
 	"""
 
-
+	
 }
 
 
 RIBO_MAIN.into{RIBO_FOR_RNASEQ; RIBO_AFTER_CREATION}
 
 
-// CREATE RIBO FILES
+// CREATE RIBO FILES 
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -1329,7 +1125,7 @@ RIBO_MAIN.into{RIBO_FOR_RNASEQ; RIBO_AFTER_CREATION}
 do_post_genome = params.input.reference.get("post_genome", false)
 
 if(do_align_genome && do_post_genome ){
-
+  
   POST_GENOME_INDEX = Channel.from([[
                   params.input.reference.post_genome
                   .split('/')[-1]
@@ -1454,24 +1250,24 @@ process merge_post_genome_alignment{
 POST_GENOME_ALIGNMENT_CSV
    .map{ sample, index, stats_file -> stats_file }
    .toSortedList().set{POST_GENOME_ALIGNMENT_CSV_INDIVIDUAL_LIST}
-
+ 
 POST_GENOME_ALIGNMENT_MERGED_CSV
    .map{ sample, stats_file -> stats_file }
    .toSortedList().set{POST_GENOME_ALIGNMENT_CSV_MERGED_LIST}
-
+                           
 process combine_individual_postgenome_stats{
   storeDir get_storedir("post_genome_alignment") + "/logs"
-
+               
   input:
   file(stats_input_files) from POST_GENOME_ALIGNMENT_CSV_INDIVIDUAL_LIST
   file(stats_input_files_merged) from POST_GENOME_ALIGNMENT_CSV_MERGED_LIST
-
+  
   output:
   file("postgenome_individual_stats.csv") \
         into POST_GENOME_ALIGNMENT_CSV_INDIVIDUAL_COMBINED
   file("postgenome_merged_stats.csv") \
         into POST_GENOME_ALIGNMENT_CSV_MERGED_COMBINED
-
+        
   """
   rfc merge overall-stats -o postgenome_individual_stats.csv ${stats_input_files} ; \
   rfc merge overall-stats -o postgenome_merged_stats.csv ${stats_input_files_merged}
@@ -1489,99 +1285,99 @@ process combine_individual_postgenome_stats{
 
 
 if(do_align_genome){
-
+  
   process append_genome_stats{
     storeDir get_storedir("stats")
-
+    
     executor 'local'
     echo true
-
+    
     input:
     file(genome_alignment_individual) from GENOME_ALIGNMENT_CSV_INDIVIDUAL_COMBINED
     file(genome_alignment_merged)     from GENOME_ALIGNMENT_CSV_MERGED_COMBINED
     file(individual_alignment_stats)  from COMBINED_INDIVIDUAL_ALIGNMENT_STATS
     file(merged_alignment_stats)      from COMBINED_MERGED_ALIGNMENT_STATS
-
-
+    
+    
     output:
     file("individual_stats_with_genome.csv") \
         into COMBINED_INDIVIDUAL_ALIGNMENT_STATS_WITH_GENOME
     file("merged_alignment_stats_with_genome.csv") \
         into COMBINED_MERGED_ALIGNMENT_STATS_WITH_GENOME
-
-
+    
+        
     """
     rfc merge concat-csv -o individual_stats_with_genome.csv  \
          ${individual_alignment_stats} ${genome_alignment_individual} && \
     rfc merge concat-csv -o merged_alignment_stats_with_genome.csv \
          ${merged_alignment_stats} ${genome_alignment_merged}
     """
-  }
+  }  
 
   if(do_post_genome){
-
+    
       process append_post_genome_stats{
         storeDir get_storedir("stats")
-
+        
         executor 'local'
-
+        
         input:
         file(post_genome_alignment_individual) from POST_GENOME_ALIGNMENT_CSV_INDIVIDUAL_COMBINED
         file(post_genome_alignment_merged)     from POST_GENOME_ALIGNMENT_CSV_MERGED_COMBINED
         file(individual_alignment_stats)       from COMBINED_INDIVIDUAL_ALIGNMENT_STATS_WITH_GENOME
         file(merged_alignment_stats)           from COMBINED_MERGED_ALIGNMENT_STATS_WITH_GENOME
-
+        
         output:
         file("individual_stats_with_post_genome.csv") \
             into COMBINED_INDIVIDUAL_ALIGNMENT_STATS_WITH_POST_GENOME
         file("merged_alignment_stats_with_post_genome.csv") \
             into COMBINED_MERGED_ALIGNMENT_STATS_WITH_POST_GENOME
-
+            
         """
         rfc merge concat-csv -o individual_stats_with_post_genome.csv  \
             ${individual_alignment_stats} ${post_genome_alignment_individual} ;
         rfc merge concat-csv -o merged_alignment_stats_with_post_genome.csv \
             ${merged_alignment_stats} ${post_genome_alignment_merged}
         """
-
+        
       } // process append_post_genome_stats
-
+      
       COMBINED_INDIVIDUAL_ALIGNMENT_STATS_WITH_POST_GENOME
       .set{ULTIMATE_INDIVIDUAL_STATS}
-
+      
       COMBINED_MERGED_ALIGNMENT_STATS_WITH_POST_GENOME
       .set{ULTIMATE_MERGED_STATS}
-
+      
   } //if(do_post_genome){
   else{
     COMBINED_INDIVIDUAL_ALIGNMENT_STATS_WITH_GENOME
     .set{ULTIMATE_INDIVIDUAL_STATS}
-
+    
     COMBINED_MERGED_ALIGNMENT_STATS_WITH_GENOME
     .set{ULTIMATE_MERGED_STATS}
   } // (else of)  //if(do_post_genome){
-
+  
 } // end of if(do_align_genome)
 else{
   //publish results
   COMBINED_INDIVIDUAL_ALIGNMENT_STATS.set{ULTIMATE_INDIVIDUAL_STATS}
   COMBINED_MERGED_ALIGNMENT_STATS.set{ULTIMATE_MERGED_STATS}
-} //(else of) if(do_align_genome)
+} //(else of) if(do_align_genome)  
 
 process publish_stats{
-
+  
   publishDir get_publishdir("stats"), mode: "copy"
-
+  
   executor 'local'
-
-  input:
+  
+  input: 
   file(individual_stats) from ULTIMATE_INDIVIDUAL_STATS
   file(merged_stats)     from ULTIMATE_MERGED_STATS
-
+  
   output:
   file("individual_stats.csv") into INDIVIDUAL_STATS_PUBLISHED
   file("stats.csv")            into MERGED_STATS_PUBLISHED
-
+  
   """
   cp ${individual_stats} individual_stats.csv && \
   cp ${merged_stats} stats.csv
@@ -1615,13 +1411,13 @@ String get_rnaseq_publishdir(output_type){
 
 
 
-// Both the boolean flag 'do_rnaseq'
-// AND actual rnaseq node must be set to perform
-// rnaseq data processing steps.
+// Both the boolean flag 'do_rnaseq' 
+// AND actual rnaseq node must be set to perform 
+// rnaseq data processing steps. 
 do_rnaseq = params.get("do_rnaseq", false) && \
             params.get("rnaseq", false)
 
-// This outer if clause contains the rest of the RNASEQ
+// This outer if clause contains the rest of the RNASEQ 
 if (do_rnaseq){
 
 rnaseq_fastq_base =  params.rnaseq.get("fastq_base", "")
@@ -1632,21 +1428,21 @@ if(! rnaseq_fastq_base.endsWith("/") && rnaseq_fastq_base != "") {
 // Group input files into a list of tuples where each item is
 // [ sample, fileindex, path_to_fastq_file]
 
-Channel.from(params.rnaseq.fastq.collect{k,v ->
-	              v.collect{ z -> [k, v.indexOf(z) + 1,
-									               file("${rnaseq_fastq_base}${z}")] }  })
-	.flatten().collate(3).into{  RNASEQ_FASTQ;
-                               RNASEQ_FASTQ_VERBOSE;
-                               RNASEQ_FASTQ_FASTQC;
+Channel.from(params.rnaseq.fastq.collect{k,v -> 
+	              v.collect{ z -> [k, v.indexOf(z) + 1, 
+									               file("${rnaseq_fastq_base}${z}")] }  }) 
+	.flatten().collate(3).into{  RNASEQ_FASTQ; 
+                               RNASEQ_FASTQ_VERBOSE; 
+                               RNASEQ_FASTQ_FASTQC; 
                                RNASEQ_FASTQ_CLIP;
                                RNASEQ_FASTQ_EXISTENCE}
-
+  
 if(params.do_check_file_existence){
   // Make Sure Fastq Files Exist
   RNASEQ_FASTQ_EXISTENCE
   .map{ sample, index, this_file -> file_exists(this_file) }
-}
-
+}  
+  
 process rnaseq_raw_fastqc{
 
   	publishDir get_rnaseq_publishdir("fastqc"), mode: 'copy'
@@ -1655,7 +1451,7 @@ process rnaseq_raw_fastqc{
   	set val(sample), val(index), file(fastq) from RNASEQ_FASTQ_FASTQC
 
   	output:
-  	set val(sample), file("${sample}.${index}_fastqc.html"),
+  	set val(sample), file("${sample}.${index}_fastqc.html"), 
         file("${sample}.${index}_fastqc.zip") into RNASEQ_FASTQC_OUT
 
     when:
@@ -1685,7 +1481,7 @@ process rnaseq_clip{
   cutadapt --cores=${task.cpus} ${params.rnaseq.clip_arguments} ${fastq} 2>${sample}.${index}.clipped.log  \
    | gzip -c  > ${sample}.${index}.clipped.fastq.gz
   """
-}
+} 
 
 RNASEQ_FILTER_INDEX = Channel.from([[
              params.input.reference.filter
@@ -1736,10 +1532,10 @@ process rnaseq_filter{
 
 }
 
-RNASEQ_FILTER_UNALIGNED.into{RNASEQ_FILTER_UNALIGNED_FASTQ_READ_LENGTH;
+RNASEQ_FILTER_UNALIGNED.into{RNASEQ_FILTER_UNALIGNED_FASTQ_READ_LENGTH; 
                              RNASEQ_FILTER_UNALIGNED_FASTQ_FASTQC;
                              RNASEQ_FILTER_UNALIGNED_TRANSCRIPTOME}
-
+                             
 
 rnaseq_bt2_arguments = params.rnaseq.get("bt2_argumments", "")
 
@@ -1751,7 +1547,7 @@ RNASEQ_TRANSCRIPTOME_INDEX = Channel.from([[
             file(params.input.reference.transcriptome),
            ]])
 
-
+                             
 process rnaseq_transcriptome_alignment{
 
    storeDir get_rnaseq_storedir("transcriptome_alignment") + "/" +\
@@ -1795,7 +1591,7 @@ process rnaseq_transcriptome_alignment{
 
 
 RNASEQ_TRANSCRIPTOME_ALIGNMENT_BAM_PRE
-.into{ RNASEQ_TRANSCRIPTOME_ALIGNMENT_BAM;
+.into{ RNASEQ_TRANSCRIPTOME_ALIGNMENT_BAM; 
        RNASEQ_TRANSCRIPTOME_ALIGNMENT_BAM_MERGE;
        RNASEQ_TRANSCRIPTOME_ALIGNMENT_BAM_FOR_QUALITY}
 
@@ -1808,16 +1604,16 @@ process rnaseq_quality_filter{
         from RNASEQ_TRANSCRIPTOME_ALIGNMENT_BAM_FOR_QUALITY
 
 	output:
-	set val(sample), val(index),
+	set val(sample), val(index), 
         file("${sample}.${index}.transcriptome_alignment.qpass.bam") \
         into RNASEQ_TRANSCRIPTOME_ALIGNMENT_QPASS_BAM_PRE
-    set val(sample), val(index),
+    set val(sample), val(index), 
         file("${sample}.${index}.transcriptome_alignment.qpass.bam.bai") \
         into RNASEQ_TRANSCRIPTOME_ALIGNMENT_QPASS_BAI
-    set val(sample), val(index),
+    set val(sample), val(index), 
         file("${sample}.${index}.qpass.count") \
         into RNASEQ_TRANSCRIPTOME_QPASS_COUNTS
-    set val(sample), val(index),
+    set val(sample), val(index), 
         file("${sample}.${index}.transcriptome_alignment.qpass.stats") \
         into RNASEQ_TRANSCRIPTOME_ALIGNMENT_QPASS_STATS
 
@@ -1832,14 +1628,14 @@ process rnaseq_quality_filter{
 }
 
 RNASEQ_TRANSCRIPTOME_ALIGNMENT_QPASS_BAM_PRE
-.into{ RNASEQ_QPASS_BAM_READ_LENGTH;
+.into{ RNASEQ_QPASS_BAM_READ_LENGTH; 
 	     RNASEQ_TRANSCRIPTOME_ALIGNMENT_QPASS_BAM}
-
+        
 // QUALITY FILTER
 ///////////////////////////////////////////////////////////////////////////////////////
 
 RNASEQ_TRANSCRIPTOME_QPASS_COUNTS
-.into{RNASEQ_TRANSCRIPTOME_QPASS_COUNTS_FOR_INDEX;
+.into{RNASEQ_TRANSCRIPTOME_QPASS_COUNTS_FOR_INDEX; 
 	    RNASEQ_TRANSCRIPTOME_QPASS_COUNTS_FOR_TABLE}
 
 // We need to copy output channels of transcriptome alignment
@@ -1866,7 +1662,7 @@ RNASEQ_TRANSCRIPTOME_ALIGNMENT_LOG
 
 RNASEQ_TRANSCRIPTOME_ALIGNMENT_STATS
 .into{ RNASEQ_TRANSCRIPTOME_ALIGNMENT_STATS_MERGE ;
-       RNASEQ_TRANSCRIPTOME_ALIGNMENT_STATS_TABLE  }
+       RNASEQ_TRANSCRIPTOME_ALIGNMENT_STATS_TABLE  }       
 
 
 process rnaseq_bam_to_bed{
@@ -1888,13 +1684,13 @@ process rnaseq_bam_to_bed{
    else
        bamToBed -i ${bam} > ${sample}.${index}.bed
    fi
-
+   
    wc -l ${sample}.${index}.bed > ${sample}.${index}_nodedup_count.txt
    """
 }
 
- RNASEQ_BAM_TO_BED.into{  RNASEQ_BED_NODEDUP;
-                          RNASEQ_BED_FOR_DEDUP;
+ RNASEQ_BAM_TO_BED.into{  RNASEQ_BED_NODEDUP; 
+                          RNASEQ_BED_FOR_DEDUP; 
                           RNASEQ_BED_FOR_INDEX_SEP_PRE }
 
 do_rnaseq_dedup = params.rnaseq.get("deduplicate", false)
@@ -1955,11 +1751,11 @@ process rnaseq_deduplicate{
 	when:
 	do_rnaseq_dedup
 
-	"""
+	"""	
 	rfc dedup -i ${bed} -o ${sample}.merged.post_dedup.bed
 	"""
 }
-
+  
 RNASEQ_BED_FOR_DEDUP_MERGED_POST_DEDUP
 .into{RNASEQ_BED_FOR_DEDUP_MERGED_POST_DEDUP_FOR_SEP;
       RNASEQ_BED_FOR_DEDUP_MERGED_POST_DEDUP_FOR_RIBO}
@@ -1967,8 +1763,8 @@ RNASEQ_BED_FOR_DEDUP_MERGED_POST_DEDUP
 RNASEQ_BED_FOR_INDEX_SEP_PRE
 .map{ sample,index,file -> [sample, index] }
 .combine(RNASEQ_BED_FOR_DEDUP_MERGED_POST_DEDUP_FOR_SEP, by:0)
-.set{ RNASEQ_BED_FOR_INDEX_SEP_POST_DEDUP }
-
+.set{ RNASEQ_BED_FOR_INDEX_SEP_POST_DEDUP }  
+  
 process rnaseq_separate_bed_post_dedup{
 
 	storeDir  get_rnaseq_storedir("alignment_ribo") + "/" + params.output.individual_lane_directory
@@ -1987,13 +1783,13 @@ process rnaseq_separate_bed_post_dedup{
 	 '{ if(\$7 == this_sample ){print(\$1"\\t"\$2"\\t"\$3"\\t"\$4"\\t"\$5"\\t"\$6)} }' ${bed} > ${sample}.${index}.post_dedup.bed \
 	  && wc -l ${sample}.${index}.post_dedup.bed > ${sample}.${index}.count_after_dedup.txt
 	"""
-}
-
+}  
+  
 if(do_rnaseq_dedup){
   RNASEQ_BED_FOR_DEDUP_MERGED_POST_DEDUP_FOR_RIBO
      .into{RNASEQ_BED_FOR_SEPARATION; RNASEQ_BED_FOR_RIBO_FINAL}
   RNASEQ_INDIVIDUAL_DEDUP_COUNT_WITH_DEDUP.set{RNASEQ_INDIVIDUAL_DEDUP_COUNT}
-}
+} 
 else{
   RNASEQ_BED_NODEDUP_FOR_RIBO
       .into{RNASEQ_BED_FOR_SEPARATION; RNASEQ_BED_FOR_RIBO_FINAL}
@@ -2033,14 +1829,14 @@ RNASEQ_CLIP_LOG_INDEXED.join(RNASEQ_FILTER_LOG_INDEXED)
 
 
 process rnaseq_individual_alignment_stats{
-
+	
 	//Compiles statistics coming from the individual steps:
 	//cutadapt, filter, transcriptome and genome alignment,
 	//quality filtering and deduplication
-
-
+	
+	
 	 executor 'local'
-
+	
    storeDir get_rnaseq_storedir("stats")
 
    input:
@@ -2084,11 +1880,11 @@ process rnaseq_combine_individual_alignment_stats{
 
   executor 'local'
 
-	publishDir get_rnaseq_publishdir("stats"), mode: 'copy'
+	publishDir get_rnaseq_publishdir("stats"), mode: 'copy' 
 
 	input:
 	file(stat_table) from RNASEQ_INDIVIDUAL_ALIGNMENT_STATS_COLLECTED
-
+    
 	output:
 	file("rnaseq_individual_stats.csv") \
 	      into RNASEQ_COMBINED_INDIVIDUAL_ALIGNMENT_STATS
@@ -2111,7 +1907,7 @@ process rnaseq_combine_individual_alignment_stats{
 /* SUM INDIVIDUAL ALIGNMENT STATS */
 
 /*
-For each sample, sums up the stats coming from individual lanes
+For each sample, sums up the stats coming from individual lanes 
 */
 
 RNASEQ_INDIVIDUAL_ALIGNMENT_STATS_FOR_GOUPING
@@ -2153,7 +1949,7 @@ RNASEQ_MERGED_ALIGNMENT_STATS
 process rnaseq_combine_merged_alignment_stats{
 
 	publishDir get_rnaseq_publishdir("stats"), mode: 'copy'
-
+	
 	executor 'local'
 
 	input:
@@ -2169,10 +1965,10 @@ process rnaseq_combine_merged_alignment_stats{
 	rfc stats-percentage \
 	  -i raw_combined_merged_aln_stats.csv \
 	  -o rnaseq_stats.csv
-	"""
+	""" 
 }
 
-// COMBINE MERGED ALIGNMENT STATS
+// COMBINE MERGED ALIGNMENT STATS 
 ////////////////////////////////////////////////////////////////////////////////
 
 RNASEQ_FOR_RIBOPY   = Channel.create()
@@ -2191,24 +1987,24 @@ RIBO_FOR_RNASEQ_EXCLUDED.map{ sample, ribo, bed_null -> [sample, ribo]}
 
 process put_rnaseq_into_ribo{
   publishDir get_publishdir("ribo") + "/experiments", mode: 'copy'
-
-  input:
+  
+  input: 
   set val(sample), file(ribo), file(rnaseq) from RNASEQ_FOR_RIBOPY
-
+  
   output:
   set val(sample), file(ribo) into RIBO_WITH_RNASEQ_PRE
 
   """
   ribopy rnaseq set -n ${sample} -a ${rnaseq} -f bed --force ${ribo}
   """
-
+  
 }
 
 // For the downsrtream "merge_ribo" process,
 // we need to combine the ribos with and without rnaseq data.
 RIBO_WITH_RNASEQ_PRE.concat( RIBO_FOR_RNASEQ_EXCLUDED_FOR_MERGE )
 .into{RIBO_WITH_RNASEQ; RIBO_WITH_RNASEQ_VERBOSE}
-
+  
 } // if (do_rnaseq)
 // RNA-Seq
 ////////////////////////////////////////////////////////////////////////////////
@@ -2219,37 +2015,29 @@ RIBO_WITH_RNASEQ_PRE.concat( RIBO_FOR_RNASEQ_EXCLUDED_FOR_MERGE )
 /* Merge Ribos*/
 
 if(do_rnaseq){
-  RIBO_WITH_RNASEQ.into{RIBO_FOR_MERGE_PRE; RIBO_FOR_COUNT}
+  RIBO_WITH_RNASEQ.set{RIBO_FOR_MERGE_PRE}
 }
 else{
-  RIBO_AFTER_CREATION.into{RIBO_FOR_MERGE_PRE; RIBO_FOR_COUNT}
+  RIBO_AFTER_CREATION.set{RIBO_FOR_MERGE_PRE}
 }
 
 RIBO_FOR_MERGE_PRE.map{ sample, ribo -> [ribo]}.flatten().collect()
                   .set{RIBO_FOR_MERGE}
 
 process merge_ribos{
-
+  
   publishDir get_publishdir("ribo"), mode:'copy'
-
+  
   input:
   file(sample_ribo) from RIBO_FOR_MERGE
-  val(ribo_count) from RIBO_FOR_COUNT.count()
-
+  
   output:
   file("all.ribo") into ALL_RIBO
-
-  script:
-  if(ribo_count > 1){
-    command = "ribopy merge all.ribo ${sample_ribo}"
-  } else {
-    command = "ln -s ${sample_ribo} all.ribo"
-  }
-
+  
   """
-  ${command}
-  """
-
+  ribopy merge all.ribo ${sample_ribo}
+  """ 
+  
 }
 
 // Merge Ribos
