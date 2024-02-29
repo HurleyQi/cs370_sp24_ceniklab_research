@@ -39,7 +39,7 @@ do_metadata: false
 # (see https://cutadapt.readthedocs.io/en/stable/guide.html )
 # Note that we had to adjust the minimum and maximum lengths 
 # because we are trimming the UMIs after CLIPPING adapters.
-clip_arguments: ' -a CTGTAGGCACCATCAAT --overlap=4 --trimmed-only --maximum-length=56 --minimum-length=31 --quality-cutoff=28'
+clip_arguments: ' -a CTGTAGGCACCATCAAT --overlap=4 --trimmed-only --maximum-length=40 --minimum-length=21 --quality-cutoff=28'
 
 # If you don't want to perform and adapter clipping, 
 # you can comment the above option and use the option below.   
