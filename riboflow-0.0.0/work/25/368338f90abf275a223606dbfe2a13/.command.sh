@@ -1,0 +1,2 @@
+#!/bin/bash -ue
+bowtie2 -L 15 --no-unal --norc             -x celegans_rRNA_new -q GSM1169543.1.clipped.fastq.gz             --threads 1             --al-gz GSM1169543.1.aligned.filter.fastq.gz             --un-gz GSM1169543.1.unaligned.filter.fastq.gz                      2> GSM1169543.1.filter.log             | samtools view -bS -             | samtools sort -@ 1 -o GSM1169543.1.filter.bam             && samtools index -@ {task.cpus} GSM1169543.1.filter.bam             && samtools idxstats -@ {task.cpus} GSM1169543.1.filter.bam  >                GSM1169543.1.filter.stats
