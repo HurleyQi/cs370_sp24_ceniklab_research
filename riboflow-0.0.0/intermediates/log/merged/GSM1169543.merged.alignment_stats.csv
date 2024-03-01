@@ -1,0 +1,11 @@
+,GSM1169543
+total_reads,46096938
+clipped_reads,2468
+filtered_out,1928
+filter_kept,540
+transcriptome_aligned_once,454
+transcriptome_aligned_many,34
+transcriptome_total_aligned,488
+transcriptome_unaligned,52
+qpass_aligned_reads,460
+after_dedup,460
