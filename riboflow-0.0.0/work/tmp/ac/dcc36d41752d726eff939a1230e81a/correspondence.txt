@@ -1,0 +1,1 @@
+GSM1169543	1	/work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914334.fastq.gz
