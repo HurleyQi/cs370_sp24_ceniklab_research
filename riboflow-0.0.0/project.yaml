@@ -155,7 +155,7 @@ input:
        # GSM1606107  and  GSM1606108
        #? Is here the place to put the input fastq data
       GSM1169543:
-        - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914328.fastq.gz
+        - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914334.fastq.gz
       
 
    ## INPUTS BELOW THIS LINE ARE POTIONAL
