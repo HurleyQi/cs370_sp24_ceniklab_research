@@ -39,7 +39,7 @@ do_metadata: false
 # (see https://cutadapt.readthedocs.io/en/stable/guide.html )
 # Note that we had to adjust the minimum and maximum lengths 
 # because we are trimming the UMIs after CLIPPING adapters.
-clip_arguments: ' -a TGGAATTCTCGGGTGCCAAGG --overlap=4 --trimmed-only --maximum-length=40 --minimum-length=21 --quality-cutoff=28'
+clip_arguments: ' -a CTGTAGGCACCATCAAT --overlap=4 --trimmed-only --maximum-length=40 --minimum-length=21 --quality-cutoff=28'
 
 # If you don't want to perform and adapter clipping, 
 # you can comment the above option and use the option below.   
@@ -73,7 +73,7 @@ ribo:
     left_span:       35
     right_span:      10
     read_length:
-       min: 18
+       min: 21
        max: 40
     coverage: true
    
@@ -154,8 +154,8 @@ input:
        # We have two ribosome profiling experiments called 
        # GSM1606107  and  GSM1606108
        #? Is here the place to put the input fastq data
-      GSM1169543:
-        - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/id961.fastq.gz
+      GSM1169549:
+        - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914334.fastq.gz
       
 
    ## INPUTS BELOW THIS LINE ARE POTIONAL
@@ -165,22 +165,22 @@ input:
    # Any valid yaml file can be stored as metadata.
    root_meta: "./project.yaml"   
 ###############################################################################
-# # If you have no RNA-Seq data to process,
-# # remove "rnaseq" node from this yaml tree  
-# rnaseq:
-#  clip_arguments: '-a CTGTAGGCACCATCAAT --quality-cutoff=28'
+# If you have no RNA-Seq data to process,
+# remove "rnaseq" node from this yaml tree  
+rnaseq:
+ clip_arguments: '-a CTGTAGGCACCATCAAT --quality-cutoff=28'
  
-#  # This will be prefixed to the file paths below
-#  # You can leave it as empty "" if you provide complete paths.
-#  fastq_base: ""
+ # This will be prefixed to the file paths below
+ # You can leave it as empty "" if you provide complete paths.
+ fastq_base: ""
  
-#  deduplicate: false
-#  filter_arguments: '-L 15 --no-unal'
-#  bt2_argumments: "-L 15  --no-unal"
+ deduplicate: false
+ filter_arguments: '-L 15 --no-unal'
+ bt2_argumments: "-L 15  --no-unal"
  
-#  # Keys must match the experiment names for the ribosome profiling data
-#  # In this particular example, valid keys are
-#  # GSM1606107 an d GSM1606108 
-#  fastq:
-#    20221228_celegans_3cells_1:
-#      - /scratch/users/vighnesh/Analysis/C_elegans_development/seq1/RNA_seq/rna_seq_tintori/combined/SRR3170302_SRR3170303_AB_P1_2-cell_r1.fastq
+ # Keys must match the experiment names for the ribosome profiling data
+ # In this particular example, valid keys are
+ # GSM1606107 an d GSM1606108 
+ fastq:
+   GSM1169549:
+     - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914328.fastq.gz
