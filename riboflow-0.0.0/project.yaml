@@ -154,8 +154,8 @@ input:
        # We have two ribosome profiling experiments called 
        # GSM1606107  and  GSM1606108
        #? Is here the place to put the input fastq data
-      GSM1169549:
-        - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914335.fastq.gz
+      GSM1169551:
+        - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914336.fastq.gz
       
 
    ## INPUTS BELOW THIS LINE ARE POTIONAL
@@ -182,5 +182,5 @@ rnaseq:
  # In this particular example, valid keys are
  # GSM1606107 an d GSM1606108 
  fastq:
-   GSM1169549:
-     - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914329.fastq.gz
+   GSM1169551:
+     - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914330.fastq.gz
