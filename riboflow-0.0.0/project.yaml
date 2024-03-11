@@ -39,7 +39,7 @@ do_metadata: false
 # (see https://cutadapt.readthedocs.io/en/stable/guide.html )
 # Note that we had to adjust the minimum and maximum lengths 
 # because we are trimming the UMIs after CLIPPING adapters.
-clip_arguments: ' -a CTGTAGGCACCATCAAT --overlap=4 --trimmed-only --maximum-length=40 --minimum-length=21 --quality-cutoff=28'
+clip_arguments: ' -a AAGATCGGAAGAGCACACGTCT --overlap=4 --trimmed-only --maximum-length=40 --minimum-length=21 --quality-cutoff=28'
 
 # If you don't want to perform and adapter clipping, 
 # you can comment the above option and use the option below.   
@@ -154,8 +154,9 @@ input:
        # We have two ribosome profiling experiments called 
        # GSM1606107  and  GSM1606108
        #? Is here the place to put the input fastq data
-      GSM1169551:
-        - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914336.fastq.gz
+      GSM1169549:
+      #   - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914336.fastq.gz
+        - /work/09855/hurleyqi/ls6/temp/SRR914334.fastq.gz
       
 
    ## INPUTS BELOW THIS LINE ARE POTIONAL
@@ -168,7 +169,7 @@ input:
 # If you have no RNA-Seq data to process,
 # remove "rnaseq" node from this yaml tree  
 rnaseq:
- clip_arguments: '-a CTGTAGGCACCATCAAT --quality-cutoff=28'
+ clip_arguments: '-a AAGATCGGAAGAGCACACGTCT --quality-cutoff=28'
  
  # This will be prefixed to the file paths below
  # You can leave it as empty "" if you provide complete paths.
@@ -182,5 +183,6 @@ rnaseq:
  # In this particular example, valid keys are
  # GSM1606107 an d GSM1606108 
  fastq:
-   GSM1169551:
-     - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914330.fastq.gz
+   GSM1169549:
+   #   - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914330.fastq.gz
+     - /work/09855/hurleyqi/ls6/temp/SRR914328.fastq.gz
