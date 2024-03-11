@@ -155,7 +155,7 @@ input:
        # GSM1606107  and  GSM1606108
        #? Is here the place to put the input fastq data
       GSM1169549:
-        - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914334.fastq.gz
+        - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914335.fastq.gz
       
 
    ## INPUTS BELOW THIS LINE ARE POTIONAL
@@ -183,4 +183,4 @@ rnaseq:
  # GSM1606107 an d GSM1606108 
  fastq:
    GSM1169549:
-     - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914328.fastq.gz
+     - /work/09855/hurleyqi/ls6/cs370_sp24_ceniklab_research/SRR914329.fastq.gz
