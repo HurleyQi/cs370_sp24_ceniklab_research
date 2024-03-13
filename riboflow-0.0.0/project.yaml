@@ -153,9 +153,9 @@ input:
    fastq:
        # We have two ribosome profiling experiments called 
        # GSM1606107  and  GSM1606108
-      GSM1277907:
-         - /work/09855/hurleyqi/ls6/temp_two/SRR1041687.fastq.gz
-         - /work/09855/hurleyqi/ls6/temp_two/SRR1041688.fastq.gz
+      GSM1277912:
+         - /work/09855/hurleyqi/ls6/temp_two/SRR1041695.fastq.gz
+         # - /work/09855/hurleyqi/ls6/temp_two/SRR1041688.fastq.gz
       
 
    ## INPUTS BELOW THIS LINE ARE POTIONAL
@@ -182,6 +182,6 @@ rnaseq:
  # In this particular example, valid keys are
  # GSM1606107 an d GSM1606108 
  fastq:
-   GSM1277907:
-      - /work/09855/hurleyqi/ls6/temp_two/SRR1041241.fastq.gz
-      - /work/09855/hurleyqi/ls6/temp_two/SRR1041242.fastq.gz
+   GSM1277912:
+      - /work/09855/hurleyqi/ls6/temp_two/SRR1041250.fastq.gz
+      - /work/09855/hurleyqi/ls6/temp_two/SRR1041251.fastq.gz
