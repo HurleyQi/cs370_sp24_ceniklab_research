@@ -28,7 +28,7 @@ deduplicate: false
 # AND PROVIDE RNA-Seq data
 # under the key rnaseq in this file. See below.
 # If you don't have RNA-Seq data, set this flag to false
-do_rnaseq: false
+do_rnaseq: true
 
 # If you don't have metadata set do_metadata to false.
 # If you have metadata, provide yaml files for the experiments
@@ -153,9 +153,9 @@ input:
    fastq:
        # We have two ribosome profiling experiments called 
        # GSM1606107  and  GSM1606108
-      GSM1277912:
-         - /work/09855/hurleyqi/ls6/temp_two/SRR1041695.fastq.gz
-         # - /work/09855/hurleyqi/ls6/temp_two/SRR1041688.fastq.gz
+      GSM1534608:
+         - /work/09855/hurleyqi/ls6/temp_two/SRR1635380.fastq.gz
+         - /work/09855/hurleyqi/ls6/temp_two/SRR1635381.fastq.gz
       
 
    ## INPUTS BELOW THIS LINE ARE POTIONAL
@@ -174,7 +174,7 @@ rnaseq:
  # You can leave it as empty "" if you provide complete paths.
  fastq_base: ""
  
- deduplicate: false
+ deduplicate: true
  filter_arguments: '-L 15 --no-unal'
  bt2_argumments: "-L 15  --no-unal"
  
@@ -182,6 +182,6 @@ rnaseq:
  # In this particular example, valid keys are
  # GSM1606107 an d GSM1606108 
  fastq:
-   GSM1277912:
-      - /work/09855/hurleyqi/ls6/temp_two/SRR1041250.fastq.gz
-      - /work/09855/hurleyqi/ls6/temp_two/SRR1041251.fastq.gz
+   GSM1534608:
+      - /work/09855/hurleyqi/ls6/temp_three/SRR1635376.fastq.gz
+      # - /work/09855/hurleyqi/ls6/temp_two/SRR1041251.fastq.gz
