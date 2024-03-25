@@ -154,7 +154,7 @@ input:
        # We have two ribosome profiling experiments called 
        # GSM1606107  and  GSM1606108
       GSM2113350:
-         - /work/09855/hurleyqi/ls6/exp_five/SRR9060555.fastq.gz
+         - /work/09855/hurleyqi/ls6/exp_five/SRR3356477.fastq.gz
       
 
    ## INPUTS BELOW THIS LINE ARE POTIONAL
@@ -182,4 +182,4 @@ rnaseq:
  # GSM1606107 an d GSM1606108 
  fastq:
    GSM2113350:
-      - /work/09855/hurleyqi/ls6/exp_five/SRR9060543.fastq.gz
+      - /work/09855/hurleyqi/ls6/exp_five/SRR3356596.fastq.gz
