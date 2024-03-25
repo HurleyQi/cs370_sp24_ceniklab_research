@@ -88,7 +88,7 @@ output:
    merged_lane_directory: 'merged'
    intermediates: 
       # base is the root folder for the intermediate files
-      base: 'intermediates_GSM2113351'
+      base: 'intermediates_GSM2113357'
       clip: 'clip'
       log: 'log'
       transcriptome_alignment: 'transcriptome_alignment'
@@ -102,10 +102,10 @@ output:
       alignment_ribo: 'alignment_ribo'
    output: 
       # base is the root folder for the output files
-      base: 'output_GSM2113351'
-      log: 'log_GSM2113351'
-      fastqc: 'fastqc_GSM2113351'
-      ribo: 'ribo_GSM2113351'
+      base: 'output_GSM2113357'
+      log: 'log_GSM2113357'
+      fastqc: 'fastqc_GSM2113357'
+      ribo: 'ribo_GSM2113357'
       
 ###############################################################################
 # In this exapmle we have two experiments with the names  
@@ -153,8 +153,9 @@ input:
    fastq:
        # We have two ribosome profiling experiments called 
        # GSM1606107  and  GSM1606108
-      GSM2113351:
-         - /work/09855/hurleyqi/ls6/exp_five/SRR3356478.fastq.gz
+      GSM2113357:
+         - /work/09855/hurleyqi/ls6/exp_five/SRR3356485.fastq.gz
+         - /work/09855/hurleyqi/ls6/exp_five/SRR3356486.fastq.gz
       
 
    ## INPUTS BELOW THIS LINE ARE POTIONAL
@@ -162,7 +163,7 @@ input:
    # This is the metadata file stored at the root ribo file
    # In this example, we are storing this yaml file    
    # Any valid yaml file can be stored as metadata.
-   root_meta: "./project_GSM2113351.yaml"   
+   root_meta: "./project_GSM2113357.yaml"   
 ###############################################################################
 # If you have no RNA-Seq data to process,
 # remove "rnaseq" node from this yaml tree  
@@ -181,6 +182,6 @@ rnaseq:
  # In this particular example, valid keys are
  # GSM1606107 an d GSM1606108 
  fastq:
-   GSM2113351:
-      - /work/09855/hurleyqi/ls6/exp_five/SRR3356597.fastq.gz
-      - /work/09855/hurleyqi/ls6/exp_five/SRR3356598.fastq.gz
+   GSM2113357:
+      - /work/09855/hurleyqi/ls6/exp_five/SRR3356608.fastq.gz
+      # - /work/09855/hurleyqi/ls6/exp_five/SRR3356606.fastq.gz
