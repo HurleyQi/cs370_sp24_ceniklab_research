@@ -39,7 +39,7 @@ do_metadata: false
 # (see https://cutadapt.readthedocs.io/en/stable/guide.html )
 # Note that we had to adjust the minimum and maximum lengths 
 # because we are trimming the UMIs after CLIPPING adapters.
-clip_arguments: ' -a CTGTAGGCACCATCAAT --overlap=4 --trimmed-only --maximum-length=40 --minimum-length=21 --quality-cutoff=28'
+clip_arguments: ' -a TGGAATTCTCGGGTGCCAAGG --overlap=4 --trimmed-only --maximum-length=40 --minimum-length=21 --quality-cutoff=28'
 
 # If you don't want to perform and adapter clipping, 
 # you can comment the above option and use the option below.   
@@ -88,7 +88,7 @@ output:
    merged_lane_directory: 'merged'
    intermediates: 
       # base is the root folder for the intermediate files
-      base: 'intermediates'
+      base: 'intermediates_GSM3768288'
       clip: 'clip'
       log: 'log'
       transcriptome_alignment: 'transcriptome_alignment'
@@ -102,10 +102,10 @@ output:
       alignment_ribo: 'alignment_ribo'
    output: 
       # base is the root folder for the output files
-      base: 'output'
-      log: 'log'
-      fastqc: 'fastqc'
-      ribo: 'ribo'
+      base: 'output_GSM3768288'
+      log: 'log_GSM3768288'
+      fastqc: 'fastqc_GSM3768288'
+      ribo: 'ribo_GSM3768288'
       
 ###############################################################################
 # In this exapmle we have two experiments with the names  
@@ -153,9 +153,8 @@ input:
    fastq:
        # We have two ribosome profiling experiments called 
        # GSM1606107  and  GSM1606108
-      GSM4148077:
-         - /work/09855/hurleyqi/ls6/exp_seven/SRR10398489.fastq.gz
-         # - /work/09855/hurleyqi/ls6/temp_two/SRR1635381.fastq.gz
+      GSM3768288:
+         - /work/09855/hurleyqi/ls6/exp_six/SRR9060555.fastq.gz
       
 
    ## INPUTS BELOW THIS LINE ARE POTIONAL
@@ -163,12 +162,12 @@ input:
    # This is the metadata file stored at the root ribo file
    # In this example, we are storing this yaml file    
    # Any valid yaml file can be stored as metadata.
-   root_meta: "./project.yaml"   
+   root_meta: "./project_GSM3768288.yaml"   
 ###############################################################################
 # If you have no RNA-Seq data to process,
 # remove "rnaseq" node from this yaml tree  
 rnaseq:
- clip_arguments: '-a CTGTAGGCACCATCAAT --quality-cutoff=28'
+ clip_arguments: '-a TGGAATTCTCGGGTGCCAAGG --quality-cutoff=28'
  
  # This will be prefixed to the file paths below
  # You can leave it as empty "" if you provide complete paths.
@@ -182,6 +181,5 @@ rnaseq:
  # In this particular example, valid keys are
  # GSM1606107 an d GSM1606108 
  fastq:
-   GSM4148077:
-      - /work/09855/hurleyqi/ls6/exp_seven/SRR10398495.fastq.gz
-      # - /work/09855/hurleyqi/ls6/temp_two/SRR1041251.fastq.gz
+   GSM3768288:
+      - /work/09855/hurleyqi/ls6/exp_six/SRR9060543.fastq.gz
